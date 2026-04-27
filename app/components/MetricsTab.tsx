@@ -81,8 +81,8 @@ export default function MetricsTab({ metrics }: MetricsTabProps) {
 
   const sortedFiltered = useMemo(() => {
     return [...filtered].sort((a, b) => {
-      const aVal = Number(a[rankMetric]) || Infinity;
-      const bVal = Number(b[rankMetric]) || Infinity;
+      const aVal = a[rankMetric] != null ? Number(a[rankMetric]) : Infinity;
+      const bVal = b[rankMetric] != null ? Number(b[rankMetric]) : Infinity;
       if (rankMetric === "forecast_accuracy" || rankMetric === "r2") {
         return bVal - aVal;
       }
