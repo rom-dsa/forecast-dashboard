@@ -191,11 +191,11 @@ export default function MetricsTab({ metrics }: MetricsTabProps) {
               </div>
               <div>
                 <span className="text-xs text-gray-500">Best MAPE</span>
-                <p className="font-bold text-gray-900">{bestModel.mape?.toFixed(2)}%</p>
+                <p className="font-bold text-gray-900">{bestModel.mape != null ? `${bestModel.mape.toFixed(2)}%` : "N/A"}</p>
               </div>
               <div>
                 <span className="text-xs text-gray-500">Best Accuracy</span>
-                <p className="font-bold text-gray-900">{bestModel.forecast_accuracy?.toFixed(1)}%</p>
+                <p className="font-bold text-gray-900">{bestModel.forecast_accuracy != null ? `${bestModel.forecast_accuracy.toFixed(1)}%` : "N/A"}</p>
               </div>
             </>
           )}
