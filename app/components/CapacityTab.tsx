@@ -41,6 +41,8 @@ export default function CapacityTab({ data }: CapacityTabProps) {
         "Planned FTE": Math.round(byMonth[m].Planned * 10) / 10,
         "Actual FTE": Math.round(byMonth[m].Actual * 10) / 10,
         "Variance (FTE)": Math.round(byMonth[m].Variance * 10) / 10,
+        "Overstaffed": byMonth[m].Variance >= 0 ? Math.round(byMonth[m].Variance * 10) / 10 : 0,
+        "Understaffed": byMonth[m].Variance < 0 ? Math.round(byMonth[m].Variance * 10) / 10 : 0,
       }));
   }, [filtered]);
 
@@ -138,9 +140,10 @@ export default function CapacityTab({ data }: CapacityTabProps) {
           className="mt-4 h-72"
           data={monthlyData}
           index="month"
-          categories={["Variance (FTE)"]}
-          colors={["indigo"]}
+          categories={["Overstaffed", "Understaffed"]}
+          colors={["emerald", "red"]}
           yAxisWidth={60}
+          stack
         />
       </Card>
 
