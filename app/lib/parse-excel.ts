@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import type { DashboardData, ForecastRow, ModelMetric, CapacityPlanRow } from "../types";
+import type { DashboardData, ForecastRow, ModelMetric } from "../types";
 
 function toNumber(val: unknown): number {
   if (val === null || val === undefined || val === "") return 0;
@@ -15,10 +15,13 @@ function toString(val: unknown): string {
 function parseForecastSheet(ws: XLSX.WorkSheet): ForecastRow[] {
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
   return rows.map((r) => ({
-    date: toString(r["date"]),
-    interval: toString(r["interval"]),
-    queue: toString(r["queue"]),
-    channel: toString(r["channel"]),
+    capacity_plan: toString(r["capacity_plan"]),
+    model_name: toString(r["model_name"]),
+    volume_stream: toString(r["volume_stream"]),
+    year: toNumber(r["Year"]),
+    month: toString(r["Month"]),
+    date: toNumber(r["date"]),
+    frequency: toString(r["frequency"]),
     actual_contacts: toNumber(r["actual_contacts"]),
     forecasted_contacts: toNumber(r["forecasted_contacts"]),
     actual_aht: toNumber(r["actual_aht"]),
@@ -30,6 +33,14 @@ function parseMetricsSheet(ws: XLSX.WorkSheet): ModelMetric[] {
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
   return rows.map((r) => {
     const base: ModelMetric = {
+      forecast_id: toString(r["forecast_id"]),
+      capacity_plan: toString(r["capacity_plan"]),
+      volume_stream: toString(r["volume_stream"]),
+      year: toString(r["year"]),
+      month: toString(r["month"]),
+      start_date: toNumber(r["start_date"]),
+      forecast_horizon: toNumber(r["forecast_horizon"]),
+      frequency: toString(r["frequency"]),
       model_name: toString(r["model_name"]),
       metric_type: toString(r["metric_type"]),
       mape: r["mape"] !== undefined ? toNumber(r["mape"]) : null,
@@ -51,21 +62,6 @@ function parseMetricsSheet(ws: XLSX.WorkSheet): ModelMetric[] {
   });
 }
 
-function parseCapacitySheet(ws: XLSX.WorkSheet): CapacityPlanRow[] {
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
-  return rows.map((r) => ({
-    month: toString(r["month"]),
-    queue: toString(r["queue"]),
-    site: toString(r["site"]),
-    required_fte: toNumber(r["required_fte"]),
-    planned_fte: toNumber(r["planned_fte"]),
-    actual_fte: toNumber(r["actual_fte"]),
-    variance_fte: toNumber(r["variance_fte"]),
-    shrinkage_pct: toNumber(r["shrinkage_pct"]),
-    attrition_rate_pct: toNumber(r["attrition_rate_pct"]),
-  }));
-}
-
 export async function loadDashboardData(url: string): Promise<DashboardData> {
   const response = await fetch(url);
   const buffer = await response.arrayBuffer();
@@ -73,11 +69,9 @@ export async function loadDashboardData(url: string): Promise<DashboardData> {
 
   const forecastSheet = workbook.Sheets["Forecast_vs_Actual"];
   const metricsSheet = workbook.Sheets["Model_Metrics"];
-  const capacitySheet = workbook.Sheets["Capacity_Plan"];
 
   return {
     forecastData: forecastSheet ? parseForecastSheet(forecastSheet) : [],
     modelMetrics: metricsSheet ? parseMetricsSheet(metricsSheet) : [],
-    capacityPlan: capacitySheet ? parseCapacitySheet(capacitySheet) : [],
   };
 }

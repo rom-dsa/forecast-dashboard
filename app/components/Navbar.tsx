@@ -11,8 +11,6 @@ const tabs = [
   { id: "overview", label: "Overview" },
   { id: "forecast", label: "Forecast vs Actual" },
   { id: "metrics", label: "Model Metrics" },
-  { id: "leaderboard", label: "Leaderboard" },
-  { id: "capacity", label: "Capacity Plan" },
 ];
 
 export default function Navbar({ activeTab, onTabChange }: NavbarProps) {

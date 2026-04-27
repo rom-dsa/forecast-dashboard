@@ -5,8 +5,6 @@ import Navbar from "./components/Navbar";
 import OverviewTab from "./components/OverviewTab";
 import ForecastTab from "./components/ForecastTab";
 import MetricsTab from "./components/MetricsTab";
-import LeaderboardTab from "./components/LeaderboardTab";
-import CapacityTab from "./components/CapacityTab";
 import { loadDashboardData } from "./lib/parse-excel";
 import type { DashboardData } from "./types";
 
@@ -50,6 +48,9 @@ export default function Home() {
     );
   }
 
+  const capacityPlans = [...new Set(data.forecastData.map((r) => r.capacity_plan))];
+  const volumeStreams = [...new Set(data.forecastData.map((r) => r.volume_stream))];
+
   return (
     <>
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
@@ -60,16 +61,14 @@ export default function Home() {
           </h1>
           <p className="text-gray-500 mt-1">
             {data.modelMetrics.length} model evaluations &middot;{" "}
-            {[...new Set(data.forecastData.map((r) => r.queue))].length} queues &middot;{" "}
-            {data.capacityPlan.length} capacity plan records
+            {capacityPlans.length} capacity plans &middot;{" "}
+            {volumeStreams.length} volume streams
           </p>
         </div>
 
         {activeTab === "overview" && <OverviewTab data={data} />}
         {activeTab === "forecast" && <ForecastTab data={data.forecastData} />}
         {activeTab === "metrics" && <MetricsTab metrics={data.modelMetrics} />}
-        {activeTab === "leaderboard" && <LeaderboardTab metrics={data.modelMetrics} />}
-        {activeTab === "capacity" && <CapacityTab data={data.capacityPlan} />}
       </div>
     </>
   );
