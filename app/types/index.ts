@@ -1,8 +1,11 @@
 export interface ForecastRow {
-  date: string;
-  interval: string;
-  queue: string;
-  channel: string;
+  capacity_plan: string;
+  model_name: string;
+  volume_stream: string;
+  year: number;
+  month: string;
+  date: number;
+  frequency: string;
   actual_contacts: number;
   forecasted_contacts: number;
   actual_aht: number;
@@ -10,6 +13,14 @@ export interface ForecastRow {
 }
 
 export interface ModelMetric {
+  forecast_id: string;
+  capacity_plan: string;
+  volume_stream: string;
+  year: string;
+  month: string;
+  start_date: number;
+  forecast_horizon: number;
+  frequency: string;
   model_name: string;
   metric_type: string;
   mape: number | null;
@@ -23,20 +34,7 @@ export interface ModelMetric {
   [key: string]: string | number | null | undefined;
 }
 
-export interface CapacityPlanRow {
-  month: string;
-  queue: string;
-  site: string;
-  required_fte: number;
-  planned_fte: number;
-  actual_fte: number;
-  variance_fte: number;
-  shrinkage_pct: number;
-  attrition_rate_pct: number;
-}
-
 export interface DashboardData {
   forecastData: ForecastRow[];
   modelMetrics: ModelMetric[];
-  capacityPlan: CapacityPlanRow[];
 }
