@@ -1,10 +1,17 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useState, useMemo } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 import type { ForecastRow } from "../types";
-
-const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
 interface ForecastTabProps {
   data: ForecastRow[];
@@ -26,25 +33,19 @@ export default function ForecastTab({ data }: ForecastTabProps) {
     [data, selectedQueue, selectedDate]
   );
 
-  const intervals = filtered.map((r) => r.interval);
-  const actuals =
-    metric === "contacts"
-      ? filtered.map((r) => r.actual_contacts)
-      : filtered.map((r) => r.actual_aht);
-  const forecasted =
-    metric === "contacts"
-      ? filtered.map((r) => r.forecasted_contacts)
-      : filtered.map((r) => r.forecasted_aht);
+  const intradayData = filtered.map((r) => ({
+    interval: r.interval,
+    actual: metric === "contacts" ? r.actual_contacts : r.actual_aht,
+    forecast: metric === "contacts" ? r.forecasted_contacts : r.forecasted_aht,
+  }));
 
-  // Compute daily summary
-  const totalActual = actuals.reduce((a, b) => a + b, 0);
-  const totalForecast = forecasted.reduce((a, b) => a + b, 0);
+  const totalActual = intradayData.reduce((a, b) => a + b.actual, 0);
+  const totalForecast = intradayData.reduce((a, b) => a + b.forecast, 0);
   const variance =
     totalActual > 0
       ? ((totalForecast - totalActual) / totalActual) * 100
       : 0;
 
-  // Daily aggregated view across all dates
   const dailyData = useMemo(() => {
     const byDate: Record<string, { actual: number; forecast: number }> = {};
     data
@@ -59,12 +60,9 @@ export default function ForecastTab({ data }: ForecastTabProps) {
           byDate[r.date].forecast += r.forecasted_aht;
         }
       });
-    const sortedDates = Object.keys(byDate).sort();
-    return {
-      dates: sortedDates,
-      actuals: sortedDates.map((d) => byDate[d].actual),
-      forecasts: sortedDates.map((d) => byDate[d].forecast),
-    };
+    return Object.keys(byDate)
+      .sort()
+      .map((d) => ({ date: d, actual: byDate[d].actual, forecast: byDate[d].forecast }));
   }, [data, selectedQueue, metric]);
 
   return (
@@ -118,13 +116,13 @@ export default function ForecastTab({ data }: ForecastTabProps) {
             <div className="text-center">
               <p className="text-xs text-gray-500">Actual</p>
               <p className="font-bold text-gray-900">
-                {metric === "contacts" ? totalActual.toLocaleString() : `${(totalActual / filtered.length || 0).toFixed(0)}s`}
+                {metric === "contacts" ? totalActual.toLocaleString() : `${(totalActual / (filtered.length || 1)).toFixed(0)}s`}
               </p>
             </div>
             <div className="text-center">
               <p className="text-xs text-gray-500">Forecast</p>
               <p className="font-bold text-gray-900">
-                {metric === "contacts" ? totalForecast.toLocaleString() : `${(totalForecast / filtered.length || 0).toFixed(0)}s`}
+                {metric === "contacts" ? totalForecast.toLocaleString() : `${(totalForecast / (filtered.length || 1)).toFixed(0)}s`}
               </p>
             </div>
             <div className="text-center">
@@ -142,38 +140,17 @@ export default function ForecastTab({ data }: ForecastTabProps) {
         <h3 className="text-lg font-semibold mb-4">
           Intraday: {selectedQueue} - {selectedDate}
         </h3>
-        <Plot
-          data={[
-            {
-              x: intervals,
-              y: actuals,
-              type: "scatter" as const,
-              mode: "lines+markers" as const,
-              name: "Actual",
-              line: { color: "#1F2937", width: 2 },
-              marker: { size: 4 },
-            },
-            {
-              x: intervals,
-              y: forecasted,
-              type: "scatter" as const,
-              mode: "lines+markers" as const,
-              name: "Forecast",
-              line: { color: "#4F46E5", width: 2, dash: "dot" as const },
-              marker: { size: 4 },
-            },
-          ]}
-          layout={{
-            xaxis: { title: "Interval", tickangle: -45 },
-            yaxis: { title: metric === "contacts" ? "Contacts" : "AHT (seconds)" },
-            legend: { orientation: "h" as const, y: -0.25 },
-            margin: { t: 20, r: 20, b: 80, l: 60 },
-            hovermode: "x unified" as const,
-            height: 400,
-          }}
-          config={{ responsive: true, displayModeBar: true }}
-          style={{ width: "100%" }}
-        />
+        <ResponsiveContainer width="100%" height={400}>
+          <LineChart data={intradayData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="interval" angle={-45} textAnchor="end" height={60} tick={{ fontSize: 11 }} />
+            <YAxis label={{ value: metric === "contacts" ? "Contacts" : "AHT (seconds)", angle: -90, position: "insideLeft" }} />
+            <Tooltip />
+            <Legend />
+            <Line type="monotone" dataKey="actual" name="Actual" stroke="#1F2937" strokeWidth={2} dot={{ r: 3 }} />
+            <Line type="monotone" dataKey="forecast" name="Forecast" stroke="#4F46E5" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
 
       {/* Daily Trend Chart */}
@@ -181,38 +158,17 @@ export default function ForecastTab({ data }: ForecastTabProps) {
         <h3 className="text-lg font-semibold mb-4">
           Daily Trend: {selectedQueue}
         </h3>
-        <Plot
-          data={[
-            {
-              x: dailyData.dates,
-              y: dailyData.actuals,
-              type: "scatter" as const,
-              mode: "lines+markers" as const,
-              name: "Actual",
-              line: { color: "#1F2937", width: 2 },
-            },
-            {
-              x: dailyData.dates,
-              y: dailyData.forecasts,
-              type: "scatter" as const,
-              mode: "lines+markers" as const,
-              name: "Forecast",
-              line: { color: "#4F46E5", width: 2, dash: "dot" as const },
-            },
-          ]}
-          layout={{
-            xaxis: { title: "Date", type: "date" as const },
-            yaxis: {
-              title: metric === "contacts" ? "Total Contacts" : "Total AHT (seconds)",
-            },
-            legend: { orientation: "h" as const, y: -0.2 },
-            margin: { t: 20, r: 20, b: 60, l: 60 },
-            hovermode: "x unified" as const,
-            height: 350,
-          }}
-          config={{ responsive: true }}
-          style={{ width: "100%" }}
-        />
+        <ResponsiveContainer width="100%" height={350}>
+          <LineChart data={dailyData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+            <YAxis label={{ value: metric === "contacts" ? "Total Contacts" : "Total AHT (seconds)", angle: -90, position: "insideLeft" }} />
+            <Tooltip />
+            <Legend />
+            <Line type="monotone" dataKey="actual" name="Actual" stroke="#1F2937" strokeWidth={2} />
+            <Line type="monotone" dataKey="forecast" name="Forecast" stroke="#4F46E5" strokeWidth={2} strokeDasharray="5 5" />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );

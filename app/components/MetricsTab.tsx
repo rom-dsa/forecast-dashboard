@@ -1,10 +1,17 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useState, useMemo } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 import type { ModelMetric } from "../types";
-
-const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
 interface MetricsTabProps {
   metrics: ModelMetric[];
@@ -33,7 +40,6 @@ export default function MetricsTab({ metrics }: MetricsTabProps) {
     [metrics, selectedType]
   );
 
-  // Detect extra columns beyond core
   const extraKeys = useMemo(() => {
     const coreKeys = new Set(["model_name", "metric_type", ...CORE_METRICS.map((m) => m.key)]);
     const extra = new Set<string>();
@@ -53,6 +59,19 @@ export default function MetricsTab({ metrics }: MetricsTabProps) {
       (m.mape ?? Infinity) < (best.mape ?? Infinity) ? m : best
     );
   }, [filtered]);
+
+  const comparisonData = filtered.map((m) => ({
+    name: m.model_name,
+    MAPE: m.mape !== null && m.mape !== undefined ? Number(m.mape) : 0,
+    RMSE: m.rmse !== null && m.rmse !== undefined ? Number(m.rmse) : 0,
+    MAE: m.mae !== null && m.mae !== undefined ? Number(m.mae) : 0,
+  }));
+
+  const accuracyData = filtered.map((m) => ({
+    name: m.model_name,
+    "Accuracy (%)": m.forecast_accuracy ?? 0,
+    "R² (%)": (m.r2 ?? 0) * 100,
+  }));
 
   return (
     <div className="space-y-6">
@@ -76,60 +95,34 @@ export default function MetricsTab({ metrics }: MetricsTabProps) {
       {/* Comparison Chart */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-lg font-semibold mb-4">Metrics Comparison</h3>
-        <Plot
-          data={["mape", "rmse", "mae"].map((metricKey) => ({
-            x: filtered.map((m) => m.model_name),
-            y: filtered.map((m) => {
-              const val = m[metricKey];
-              return val !== null && val !== undefined ? Number(val) : 0;
-            }),
-            type: "bar" as const,
-            name: metricKey.toUpperCase(),
-          }))}
-          layout={{
-            barmode: "group" as const,
-            xaxis: { title: "Model" },
-            yaxis: { title: "Score" },
-            legend: { orientation: "h" as const, y: -0.2 },
-            margin: { t: 20, r: 20, b: 100, l: 60 },
-            height: 400,
-          }}
-          config={{ responsive: true }}
-          style={{ width: "100%" }}
-        />
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart data={comparisonData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" angle={-30} textAnchor="end" height={80} tick={{ fontSize: 11 }} />
+            <YAxis label={{ value: "Score", angle: -90, position: "insideLeft" }} />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="MAPE" fill="#4F46E5" />
+            <Bar dataKey="RMSE" fill="#059669" />
+            <Bar dataKey="MAE" fill="#D97706" />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
 
       {/* Accuracy Chart */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-lg font-semibold mb-4">Forecast Accuracy & R²</h3>
-        <Plot
-          data={[
-            {
-              x: filtered.map((m) => m.model_name),
-              y: filtered.map((m) => m.forecast_accuracy ?? 0),
-              type: "bar" as const,
-              name: "Accuracy (%)",
-              marker: { color: "#4F46E5" },
-            },
-            {
-              x: filtered.map((m) => m.model_name),
-              y: filtered.map((m) => (m.r2 ?? 0) * 100),
-              type: "bar" as const,
-              name: "R² (%)",
-              marker: { color: "#059669" },
-            },
-          ]}
-          layout={{
-            barmode: "group" as const,
-            xaxis: { title: "Model" },
-            yaxis: { title: "%" },
-            legend: { orientation: "h" as const, y: -0.2 },
-            margin: { t: 20, r: 20, b: 100, l: 60 },
-            height: 350,
-          }}
-          config={{ responsive: true }}
-          style={{ width: "100%" }}
-        />
+        <ResponsiveContainer width="100%" height={350}>
+          <BarChart data={accuracyData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" angle={-30} textAnchor="end" height={80} tick={{ fontSize: 11 }} />
+            <YAxis label={{ value: "%", angle: -90, position: "insideLeft" }} />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="Accuracy (%)" fill="#4F46E5" />
+            <Bar dataKey="R² (%)" fill="#059669" />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
 
       {/* Detailed Metrics Table */}

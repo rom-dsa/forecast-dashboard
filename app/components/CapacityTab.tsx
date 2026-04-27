@@ -1,10 +1,20 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useState, useMemo } from "react";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
 import type { CapacityPlanRow } from "../types";
-
-const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
 interface CapacityTabProps {
   data: CapacityPlanRow[];
@@ -26,7 +36,6 @@ export default function CapacityTab({ data }: CapacityTabProps) {
     [data, selectedQueue, selectedSite]
   );
 
-  // Aggregate by month
   const monthlyData = useMemo(() => {
     const byMonth: Record<string, { required: number; planned: number; actual: number; variance: number }> = {};
     filtered.forEach((r) => {
@@ -36,17 +45,17 @@ export default function CapacityTab({ data }: CapacityTabProps) {
       byMonth[r.month].actual += r.actual_fte;
       byMonth[r.month].variance += r.variance_fte;
     });
-    const months = Object.keys(byMonth).sort();
-    return {
-      months,
-      required: months.map((m) => Math.round(byMonth[m].required * 10) / 10),
-      planned: months.map((m) => Math.round(byMonth[m].planned * 10) / 10),
-      actual: months.map((m) => Math.round(byMonth[m].actual * 10) / 10),
-      variance: months.map((m) => Math.round(byMonth[m].variance * 10) / 10),
-    };
+    return Object.keys(byMonth)
+      .sort()
+      .map((m) => ({
+        month: m,
+        required: Math.round(byMonth[m].required * 10) / 10,
+        planned: Math.round(byMonth[m].planned * 10) / 10,
+        actual: Math.round(byMonth[m].actual * 10) / 10,
+        variance: Math.round(byMonth[m].variance * 10) / 10,
+      }));
   }, [filtered]);
 
-  // Summary stats
   const totalRequired = filtered.reduce((a, r) => a + r.required_fte, 0);
   const totalPlanned = filtered.reduce((a, r) => a + r.planned_fte, 0);
   const totalActual = filtered.reduce((a, r) => a + r.actual_fte, 0);
@@ -123,72 +132,36 @@ export default function CapacityTab({ data }: CapacityTabProps) {
       {/* FTE Chart */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-lg font-semibold mb-4">FTE: Required vs Planned vs Actual</h3>
-        <Plot
-          data={[
-            {
-              x: monthlyData.months,
-              y: monthlyData.required,
-              type: "scatter" as const,
-              mode: "lines+markers" as const,
-              name: "Required FTE",
-              line: { color: "#DC2626", width: 2 },
-            },
-            {
-              x: monthlyData.months,
-              y: monthlyData.planned,
-              type: "scatter" as const,
-              mode: "lines+markers" as const,
-              name: "Planned FTE",
-              line: { color: "#4F46E5", width: 2 },
-            },
-            {
-              x: monthlyData.months,
-              y: monthlyData.actual,
-              type: "scatter" as const,
-              mode: "lines+markers" as const,
-              name: "Actual FTE",
-              line: { color: "#059669", width: 2, dash: "dot" as const },
-            },
-          ]}
-          layout={{
-            xaxis: { title: "Month" },
-            yaxis: { title: "FTE" },
-            legend: { orientation: "h" as const, y: -0.2 },
-            margin: { t: 20, r: 20, b: 60, l: 60 },
-            hovermode: "x unified" as const,
-            height: 400,
-          }}
-          config={{ responsive: true }}
-          style={{ width: "100%" }}
-        />
+        <ResponsiveContainer width="100%" height={400}>
+          <LineChart data={monthlyData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+            <YAxis label={{ value: "FTE", angle: -90, position: "insideLeft" }} />
+            <Tooltip />
+            <Legend />
+            <Line type="monotone" dataKey="required" name="Required FTE" stroke="#DC2626" strokeWidth={2} />
+            <Line type="monotone" dataKey="planned" name="Planned FTE" stroke="#4F46E5" strokeWidth={2} />
+            <Line type="monotone" dataKey="actual" name="Actual FTE" stroke="#059669" strokeWidth={2} strokeDasharray="5 5" />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
 
       {/* Variance Chart */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-lg font-semibold mb-4">FTE Variance by Month</h3>
-        <Plot
-          data={[
-            {
-              x: monthlyData.months,
-              y: monthlyData.variance,
-              type: "bar" as const,
-              name: "Variance (FTE)",
-              marker: {
-                color: monthlyData.variance.map((v) =>
-                  v < 0 ? "#DC2626" : "#059669"
-                ),
-              },
-            },
-          ]}
-          layout={{
-            xaxis: { title: "Month" },
-            yaxis: { title: "Variance (FTE)" },
-            margin: { t: 20, r: 20, b: 60, l: 60 },
-            height: 300,
-          }}
-          config={{ responsive: true }}
-          style={{ width: "100%" }}
-        />
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={monthlyData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+            <YAxis label={{ value: "Variance (FTE)", angle: -90, position: "insideLeft" }} />
+            <Tooltip />
+            <Bar dataKey="variance" name="Variance (FTE)">
+              {monthlyData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.variance < 0 ? "#DC2626" : "#059669"} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
 
       {/* Detailed Table */}
