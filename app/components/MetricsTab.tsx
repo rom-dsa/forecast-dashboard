@@ -1,16 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { Card, BarChart } from "@tremor/react";
 import type { ModelMetric } from "../types";
 
 interface MetricsTabProps {
@@ -70,7 +61,7 @@ export default function MetricsTab({ metrics }: MetricsTabProps) {
   const accuracyData = filtered.map((m) => ({
     name: m.model_name,
     "Accuracy (%)": m.forecast_accuracy ?? 0,
-    "R² (%)": (m.r2 ?? 0) * 100,
+    "R² (%)": Math.round((m.r2 ?? 0) * 10000) / 100,
   }));
 
   return (
@@ -93,37 +84,30 @@ export default function MetricsTab({ metrics }: MetricsTabProps) {
       </div>
 
       {/* Comparison Chart */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold mb-4">Metrics Comparison</h3>
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart data={comparisonData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" angle={-30} textAnchor="end" height={80} tick={{ fontSize: 11 }} />
-            <YAxis label={{ value: "Score", angle: -90, position: "insideLeft" }} />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="MAPE" fill="#4F46E5" />
-            <Bar dataKey="RMSE" fill="#059669" />
-            <Bar dataKey="MAE" fill="#D97706" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      <Card>
+        <h3 className="text-lg font-semibold text-tremor-content-strong">Metrics Comparison</h3>
+        <BarChart
+          className="mt-4 h-96"
+          data={comparisonData}
+          index="name"
+          categories={["MAPE", "RMSE", "MAE"]}
+          colors={["indigo", "emerald", "amber"]}
+          yAxisWidth={60}
+        />
+      </Card>
 
       {/* Accuracy Chart */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold mb-4">Forecast Accuracy & R²</h3>
-        <ResponsiveContainer width="100%" height={350}>
-          <BarChart data={accuracyData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" angle={-30} textAnchor="end" height={80} tick={{ fontSize: 11 }} />
-            <YAxis label={{ value: "%", angle: -90, position: "insideLeft" }} />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="Accuracy (%)" fill="#4F46E5" />
-            <Bar dataKey="R² (%)" fill="#059669" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      <Card>
+        <h3 className="text-lg font-semibold text-tremor-content-strong">Forecast Accuracy & R²</h3>
+        <BarChart
+          className="mt-4 h-80"
+          data={accuracyData}
+          index="name"
+          categories={["Accuracy (%)", "R² (%)"]}
+          colors={["indigo", "emerald"]}
+          yAxisWidth={60}
+        />
+      </Card>
 
       {/* Detailed Metrics Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">

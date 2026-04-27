@@ -1,16 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { Card, LineChart } from "@tremor/react";
 import type { ForecastRow } from "../types";
 
 interface ForecastTabProps {
@@ -35,34 +26,34 @@ export default function ForecastTab({ data }: ForecastTabProps) {
 
   const intradayData = filtered.map((r) => ({
     interval: r.interval,
-    actual: metric === "contacts" ? r.actual_contacts : r.actual_aht,
-    forecast: metric === "contacts" ? r.forecasted_contacts : r.forecasted_aht,
+    Actual: metric === "contacts" ? r.actual_contacts : r.actual_aht,
+    Forecast: metric === "contacts" ? r.forecasted_contacts : r.forecasted_aht,
   }));
 
-  const totalActual = intradayData.reduce((a, b) => a + b.actual, 0);
-  const totalForecast = intradayData.reduce((a, b) => a + b.forecast, 0);
+  const totalActual = intradayData.reduce((a, b) => a + b.Actual, 0);
+  const totalForecast = intradayData.reduce((a, b) => a + b.Forecast, 0);
   const variance =
     totalActual > 0
       ? ((totalForecast - totalActual) / totalActual) * 100
       : 0;
 
   const dailyData = useMemo(() => {
-    const byDate: Record<string, { actual: number; forecast: number }> = {};
+    const byDate: Record<string, { Actual: number; Forecast: number }> = {};
     data
       .filter((r) => r.queue === selectedQueue)
       .forEach((r) => {
-        if (!byDate[r.date]) byDate[r.date] = { actual: 0, forecast: 0 };
+        if (!byDate[r.date]) byDate[r.date] = { Actual: 0, Forecast: 0 };
         if (metric === "contacts") {
-          byDate[r.date].actual += r.actual_contacts;
-          byDate[r.date].forecast += r.forecasted_contacts;
+          byDate[r.date].Actual += r.actual_contacts;
+          byDate[r.date].Forecast += r.forecasted_contacts;
         } else {
-          byDate[r.date].actual += r.actual_aht;
-          byDate[r.date].forecast += r.forecasted_aht;
+          byDate[r.date].Actual += r.actual_aht;
+          byDate[r.date].Forecast += r.forecasted_aht;
         }
       });
     return Object.keys(byDate)
       .sort()
-      .map((d) => ({ date: d, actual: byDate[d].actual, forecast: byDate[d].forecast }));
+      .map((d) => ({ date: d, Actual: byDate[d].Actual, Forecast: byDate[d].Forecast }));
   }, [data, selectedQueue, metric]);
 
   return (
@@ -136,40 +127,36 @@ export default function ForecastTab({ data }: ForecastTabProps) {
       </div>
 
       {/* Intraday Chart */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold mb-4">
+      <Card>
+        <h3 className="text-lg font-semibold text-tremor-content-strong">
           Intraday: {selectedQueue} - {selectedDate}
         </h3>
-        <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={intradayData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="interval" angle={-45} textAnchor="end" height={60} tick={{ fontSize: 11 }} />
-            <YAxis label={{ value: metric === "contacts" ? "Contacts" : "AHT (seconds)", angle: -90, position: "insideLeft" }} />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="actual" name="Actual" stroke="#1F2937" strokeWidth={2} dot={{ r: 3 }} />
-            <Line type="monotone" dataKey="forecast" name="Forecast" stroke="#4F46E5" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+        <LineChart
+          className="mt-4 h-96"
+          data={intradayData}
+          index="interval"
+          categories={["Actual", "Forecast"]}
+          colors={["gray", "indigo"]}
+          yAxisWidth={65}
+          connectNulls
+        />
+      </Card>
 
       {/* Daily Trend Chart */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold mb-4">
+      <Card>
+        <h3 className="text-lg font-semibold text-tremor-content-strong">
           Daily Trend: {selectedQueue}
         </h3>
-        <ResponsiveContainer width="100%" height={350}>
-          <LineChart data={dailyData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-            <YAxis label={{ value: metric === "contacts" ? "Total Contacts" : "Total AHT (seconds)", angle: -90, position: "insideLeft" }} />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="actual" name="Actual" stroke="#1F2937" strokeWidth={2} />
-            <Line type="monotone" dataKey="forecast" name="Forecast" stroke="#4F46E5" strokeWidth={2} strokeDasharray="5 5" />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+        <LineChart
+          className="mt-4 h-80"
+          data={dailyData}
+          index="date"
+          categories={["Actual", "Forecast"]}
+          colors={["gray", "indigo"]}
+          yAxisWidth={65}
+          connectNulls
+        />
+      </Card>
     </div>
   );
 }

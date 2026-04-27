@@ -1,19 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
+import { Card, LineChart, BarChart } from "@tremor/react";
 import type { CapacityPlanRow } from "../types";
 
 interface CapacityTabProps {
@@ -37,22 +25,22 @@ export default function CapacityTab({ data }: CapacityTabProps) {
   );
 
   const monthlyData = useMemo(() => {
-    const byMonth: Record<string, { required: number; planned: number; actual: number; variance: number }> = {};
+    const byMonth: Record<string, { Required: number; Planned: number; Actual: number; Variance: number }> = {};
     filtered.forEach((r) => {
-      if (!byMonth[r.month]) byMonth[r.month] = { required: 0, planned: 0, actual: 0, variance: 0 };
-      byMonth[r.month].required += r.required_fte;
-      byMonth[r.month].planned += r.planned_fte;
-      byMonth[r.month].actual += r.actual_fte;
-      byMonth[r.month].variance += r.variance_fte;
+      if (!byMonth[r.month]) byMonth[r.month] = { Required: 0, Planned: 0, Actual: 0, Variance: 0 };
+      byMonth[r.month].Required += r.required_fte;
+      byMonth[r.month].Planned += r.planned_fte;
+      byMonth[r.month].Actual += r.actual_fte;
+      byMonth[r.month].Variance += r.variance_fte;
     });
     return Object.keys(byMonth)
       .sort()
       .map((m) => ({
         month: m,
-        required: Math.round(byMonth[m].required * 10) / 10,
-        planned: Math.round(byMonth[m].planned * 10) / 10,
-        actual: Math.round(byMonth[m].actual * 10) / 10,
-        variance: Math.round(byMonth[m].variance * 10) / 10,
+        "Required FTE": Math.round(byMonth[m].Required * 10) / 10,
+        "Planned FTE": Math.round(byMonth[m].Planned * 10) / 10,
+        "Actual FTE": Math.round(byMonth[m].Actual * 10) / 10,
+        "Variance (FTE)": Math.round(byMonth[m].Variance * 10) / 10,
       }));
   }, [filtered]);
 
@@ -130,39 +118,31 @@ export default function CapacityTab({ data }: CapacityTabProps) {
       </div>
 
       {/* FTE Chart */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold mb-4">FTE: Required vs Planned vs Actual</h3>
-        <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={monthlyData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-            <YAxis label={{ value: "FTE", angle: -90, position: "insideLeft" }} />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="required" name="Required FTE" stroke="#DC2626" strokeWidth={2} />
-            <Line type="monotone" dataKey="planned" name="Planned FTE" stroke="#4F46E5" strokeWidth={2} />
-            <Line type="monotone" dataKey="actual" name="Actual FTE" stroke="#059669" strokeWidth={2} strokeDasharray="5 5" />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      <Card>
+        <h3 className="text-lg font-semibold text-tremor-content-strong">FTE: Required vs Planned vs Actual</h3>
+        <LineChart
+          className="mt-4 h-96"
+          data={monthlyData}
+          index="month"
+          categories={["Required FTE", "Planned FTE", "Actual FTE"]}
+          colors={["red", "indigo", "emerald"]}
+          yAxisWidth={60}
+          connectNulls
+        />
+      </Card>
 
       {/* Variance Chart */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold mb-4">FTE Variance by Month</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={monthlyData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-            <YAxis label={{ value: "Variance (FTE)", angle: -90, position: "insideLeft" }} />
-            <Tooltip />
-            <Bar dataKey="variance" name="Variance (FTE)">
-              {monthlyData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.variance < 0 ? "#DC2626" : "#059669"} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      <Card>
+        <h3 className="text-lg font-semibold text-tremor-content-strong">FTE Variance by Month</h3>
+        <BarChart
+          className="mt-4 h-72"
+          data={monthlyData}
+          index="month"
+          categories={["Variance (FTE)"]}
+          colors={["indigo"]}
+          yAxisWidth={60}
+        />
+      </Card>
 
       {/* Detailed Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
