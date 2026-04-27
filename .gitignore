@@ -16,6 +16,9 @@
 # production
 /build
 
+# built site for GitHub Pages (rebuilt by CI workflow)
+/docs
+
 # misc
 .DS_Store
 *.pem
